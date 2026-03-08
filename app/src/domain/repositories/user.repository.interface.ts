@@ -8,5 +8,6 @@ export interface UserRepository {
   findByEmail(email: string): Promise<IUser | null>; // Para el Login
   update(uuid: string, data: IUpdateUser): Promise<void>; // Para el Phone y Address
   findById(uuid: string): Promise<IUser | null>; // Para Get Profile
-  uploadAndSaveAvatar(uuid: string, data: IFile): Promise<string>; // Para el avatar (aang no, ni tampoco el azul, la imagen we)
+  uploadAndSaveAvatar(uuid: string, name: string, data: IFile): Promise<string>; // Para el avatar (aang no, ni tampoco el azul, la imagen we)
+  getSecret(value: string): Promise<string>;
 }

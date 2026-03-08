@@ -8,7 +8,11 @@ export class UploadAvatarUseCase {
     const extension = data.fileType.split("/")[1] || "jpg";
     const fileName = `avatars/${uuid}-${Date.now()}.${extension}`;
 
-    const imageUrl = await this.userRepository.uploadAndSaveAvatar(uuid, data);
+    const imageUrl = await this.userRepository.uploadAndSaveAvatar(
+      uuid,
+      fileName,
+      data,
+    );
 
     return imageUrl;
   }

@@ -4,7 +4,12 @@ import {
   PutCommand,
   UpdateCommand,
   GetCommand,
+  QueryCommand,
 } from "@aws-sdk/lib-dynamodb";
+import {
+  GetSecretValueCommand,
+  SecretsManagerClient,
+} from "@aws-sdk/client-secrets-manager";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { IUser } from "../../domain/entities/user.entity";
 import { UserRepository } from "../../domain/repositories/user.repository.interface";
@@ -46,8 +51,11 @@ export class DynamoUserRepository implements UserRepository {
     );
   }
 
-  async uploadAndSaveAvatar(uuid: string, data: IFile): Promise<string> {
-    // Usamos el objeto IFile (data.name, data.base64, etc.)
+  async uploadAndSaveAvatar(
+    uuid: string,
+    name: string,
+    data: IFile,
+  ): Promise<string> {
     const buffer = Buffer.from(
       data.image.replace(/^data:image\/\w+;base64,/, ""),
       "base64",
@@ -56,13 +64,13 @@ export class DynamoUserRepository implements UserRepository {
     await this.s3Client.send(
       new PutObjectCommand({
         Bucket: this.bucketName,
-        Key: data.name,
+        Key: name,
         Body: buffer,
-        ContentType: data.type,
+        ContentType: data.fileType,
       }),
     );
 
-    const imageUrl = `https://${this.bucketName}.s3.amazonaws.com/${data.name}`;
+    const imageUrl = `https://${this.bucketName}.s3.amazonaws.com/${name}`;
 
     await this.dynamoClient.send(
       new UpdateCommand({
@@ -74,5 +82,46 @@ export class DynamoUserRepository implements UserRepository {
     );
 
     return imageUrl;
+  }
+
+  async findById(uuid: string): Promise<IUser | null> {
+    const result = await this.dynamoClient.send(
+      new GetCommand({
+        TableName: this.tableName,
+        Key: { uuid: uuid },
+      }),
+    );
+
+    return (result.Item as IUser) || null;
+  }
+
+  async findByEmail(email: string): Promise<IUser | null> {
+    const result = await this.dynamoClient.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        IndexName: "EmailIndex",
+        KeyConditionExpression: "email = :e",
+        ExpressionAttributeValues: {
+          ":e": email,
+        },
+      }),
+    );
+
+    if (result.Items && result.Items.length > 0) {
+      return result.Items[0] as IUser;
+    }
+
+    return null;
+  }
+
+  private readonly secretsClient = new SecretsManagerClient({});
+
+  async getSecret(secretName: string): Promise<string> {
+    const response = await this.secretsClient.send(
+      new GetSecretValueCommand({
+        SecretId: secretName,
+      }),
+    );
+    return response.SecretString || "";
   }
 }
