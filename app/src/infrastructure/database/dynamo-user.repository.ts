@@ -19,7 +19,9 @@ import { IFile } from "../../domain/interfaces/file.interface";
 
 export class DynamoUserRepository implements UserRepository {
   private readonly dynamoClient = DynamoDBDocumentClient.from(
-    new DynamoDBClient({}),
+    new DynamoDBClient({
+      region: process.env.region || "us-east-1",
+    }),
   );
   private readonly s3Client = new S3Client({});
 
@@ -27,7 +29,7 @@ export class DynamoUserRepository implements UserRepository {
   private readonly bucketName =
     process.env.USER_AVATARS_BUCKET || "my-banking-avatars";
 
-  async save(user: IRegisterUser): Promise<IUser> {
+  async save(user: IUser): Promise<IUser> {
     await this.dynamoClient.send(
       new PutCommand({
         TableName: this.tableName,

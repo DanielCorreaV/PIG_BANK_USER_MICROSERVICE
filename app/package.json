@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "esbuild src/infrastructure/handlers/*.ts --bundle --outdir=dist/ --platform=node --target=node18 --external:@aws-sdk/*"
   },
   "keywords": [],
   "author": "",
