@@ -4,44 +4,75 @@ resource "aws_api_gateway_rest_api" "ApiUsers" {
   description = "this API exist to manage the request from the teacher's page"
 }
 
-resource "aws_api_gateway_resource" "UsersResource" {
-  rest_api_id = aws_api_gateway_rest_api.ApiUsers
-  parent_id = aws_api_gateway_rest_api.ApiUsers.root_resource_id
-  path_part = "users"
+# --- RECURSOS ---
+
+# /register
+resource "aws_api_gateway_resource" "RegisterResource" {
+  rest_api_id = aws_api_gateway_rest_api.ApiUsers.id
+  parent_id   = aws_api_gateway_rest_api.ApiUsers.root_resource_id
+  path_part   = "register"
+}
+
+# /login
+resource "aws_api_gateway_resource" "LoginResource" {
+  rest_api_id = aws_api_gateway_rest_api.ApiUsers.id
+  parent_id   = aws_api_gateway_rest_api.ApiUsers.root_resource_id
+  path_part   = "login"
+}
+
+# /profile
+resource "aws_api_gateway_resource" "ProfileResource" {
+  rest_api_id = aws_api_gateway_rest_api.ApiUsers.id
+  parent_id   = aws_api_gateway_rest_api.ApiUsers.root_resource_id
+  path_part   = "profile"
+}
+
+# /profile/{user_id}
+resource "aws_api_gateway_resource" "UpdateResource" {
+  rest_api_id = aws_api_gateway_rest_api.ApiUsers.id
+  parent_id   = aws_api_gateway_resource.ProfileResource.id
+  path_part   = "{user_id}"
+}
+
+# /profile/{user_id}/avatar (NUEVO: Para cumplir con el POST del avatar)
+resource "aws_api_gateway_resource" "AvatarResource" {
+  rest_api_id = aws_api_gateway_rest_api.ApiUsers.id
+  parent_id   = aws_api_gateway_resource.UpdateResource.id
+  path_part   = "avatar"
 }
 
 // Los endpoints
 
 resource "aws_api_gateway_method" "UserRegisterPost" { //register
-  resource_id = aws_api_gateway_resource.UsersResource.id
+  resource_id = aws_api_gateway_resource.RegisterResource.id
   rest_api_id = aws_api_gateway_rest_api.ApiUsers.id
   http_method = "POST"
   authorization = "NONE" // lambda autorizer
 }
 
 resource "aws_api_gateway_method" "UserLoginPost" { //login
-    resource_id = aws_api_gateway_resource.UsersResource.id
+    resource_id = aws_api_gateway_resource.LoginResource.id
     rest_api_id = aws_api_gateway_rest_api.ApiUsers.id
     http_method = "POST"
     authorization = "NONE" 
 }
 
 resource "aws_api_gateway_method" "UserUpdatePut" { //update
-    resource_id = aws_api_gateway_resource.UsersResource.id
+    resource_id = aws_api_gateway_resource.UpdateResource.id
     rest_api_id = aws_api_gateway_rest_api.ApiUsers.id
     http_method = "PUT"
     authorization = "NONE" 
 }
 
 resource "aws_api_gateway_method" "UserUploadAvatarPost" { //upload avatar
-    resource_id = aws_api_gateway_resource.UsersResource.id
+    resource_id = aws_api_gateway_resource.AvatarResource.id
     rest_api_id = aws_api_gateway_rest_api.ApiUsers.id
     http_method = "POST"
     authorization = "NONE" 
 }
 
 resource "aws_api_gateway_method" "UserProfileGet" { // get profile
-    resource_id = aws_api_gateway_resource.UsersResource.id
+    resource_id = aws_api_gateway_resource.UpdateResource.id
     rest_api_id = aws_api_gateway_rest_api.ApiUsers.id
     http_method = "GET"
     authorization = "NONE" 
@@ -55,15 +86,9 @@ resource "aws_dynamodb_table" "usersTable" {
     read_capacity = 20
     write_capacity = 20
     hash_key = "uuid"
-    range_key = "document"
 
     attribute {
     name = "uuid"
-    type = "S" 
-  }
-
-  attribute {
-    name = "document"
     type = "S"
   }
 
@@ -72,7 +97,7 @@ resource "aws_dynamodb_table" "usersTable" {
     type = "S"
   }
 
-  # Índice necesario para tu método findByEmail
+  # Mantenemos este GSI para el método findByEmail de tu repositorio
   global_secondary_index {
     name               = "EmailIndex"
     hash_key           = "email"
@@ -86,6 +111,21 @@ resource "aws_dynamodb_table" "usersTable" {
         write_capacity
       ] 
     }
+}
+
+// S3
+
+resource "aws_s3_bucket" "user_avatars" {
+  bucket = var.USER_AVATARS_BUCKET
+}
+
+resource "aws_s3_bucket_public_access_block" "avatars_block" {
+  bucket = aws_s3_bucket.user_avatars.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
 }
 
 
@@ -138,7 +178,7 @@ resource "aws_lambda_function" "userLoginLambdaCmd" {
   runtime = "nodejs20.x"
   timeout = 900
   memory_size = 256
-  role = aws_iam_role.i_am_Login_lambda.arn
+  role = aws_iam_role.i_am_login_lambda.arn
   source_code_hash = data.archive_file.aws_lambda_function_login_file.output_base64sha256
 
   environment {
@@ -223,6 +263,7 @@ resource "aws_lambda_function" "useruploadLambdaCmd" {
     variables = {
         "region" = var.region,
         "USER_TABLE" = var.user-table
+        "USER_AVATARS_BUCKET"  = aws_s3_bucket.user_avatars.id
     }
   }
 
@@ -283,4 +324,180 @@ resource "aws_iam_role_policy" "lambda_profile_dynamo" {
   name = "lambdaDynamoDbUser_profile"
   role = aws_iam_role.i_am_profile_lambda.id
   policy = data.aws_iam_policy_document.lambda_permissions.json
+}
+
+// Integration
+
+//Register
+
+resource "aws_api_gateway_integration" "register_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.ApiUsers.id
+  resource_id             = aws_api_gateway_resource.RegisterResource.id
+  http_method             = aws_api_gateway_method.UserRegisterPost.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.userRegisterLambdaCmd.invoke_arn
+}
+
+resource "aws_lambda_permission" "apigw_register" {
+  statement_id  = "AllowExecutionFromApiGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = var.userLambdaRegisterNameCmd
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.ApiUsers.execution_arn}/*/POST/register"
+  depends_on = [ aws_lambda_function.userRegisterLambdaCmd ]
+}
+
+//login
+
+resource "aws_api_gateway_integration" "login_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.ApiUsers.id
+  resource_id             = aws_api_gateway_resource.LoginResource.id
+  http_method             = aws_api_gateway_method.UserLoginPost.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.userLoginLambdaCmd.invoke_arn
+}
+
+resource "aws_lambda_permission" "apigw_login" {
+  statement_id  = "AllowExecutionFromApiGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = var.userLambdaLoginNameCmd
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.ApiUsers.execution_arn}/*/POST/login"
+  depends_on = [ aws_lambda_function.userLoginLambdaCmd ]
+}
+
+// update
+
+resource "aws_api_gateway_integration" "update_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.ApiUsers.id
+  resource_id             = aws_api_gateway_resource.UpdateResource.id
+  http_method             = aws_api_gateway_method.UserUpdatePut.http_method
+  integration_http_method = "POST" 
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.userupdateLambdaCmd.invoke_arn
+}
+
+resource "aws_lambda_permission" "apigw_update" {
+  statement_id  = "AllowExecutionFromApiGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.userupdateLambdaCmd.function_name
+  principal     = "apigateway.amazonaws.com"
+  
+  source_arn    = "${aws_api_gateway_rest_api.ApiUsers.execution_arn}/*/PUT/profile/*"
+  
+  depends_on = [ aws_lambda_function.userupdateLambdaCmd ]
+}
+
+//get profile
+
+resource "aws_api_gateway_integration" "profile_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.ApiUsers.id
+  resource_id             = aws_api_gateway_resource.UpdateResource.id
+  http_method             = aws_api_gateway_method.UserProfileGet.http_method
+  integration_http_method = "POST" 
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.userprofileLambdaQry.invoke_arn
+}
+
+resource "aws_lambda_permission" "apigw_profile" {
+  statement_id  = "AllowExecutionFromApiGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.userprofileLambdaQry.function_name
+  principal     = "apigateway.amazonaws.com"
+  
+  source_arn    = "${aws_api_gateway_rest_api.ApiUsers.execution_arn}/*/GET/profile/*"
+  
+  depends_on = [ aws_lambda_function.userprofileLambdaQry ]
+}
+
+// Upload
+
+resource "aws_api_gateway_integration" "upload_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.ApiUsers.id
+  resource_id             = aws_api_gateway_resource.AvatarResource.id
+  http_method             = aws_api_gateway_method.UserUploadAvatarPost.http_method
+  integration_http_method = "POST" 
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.useruploadLambdaCmd.invoke_arn
+}
+
+resource "aws_lambda_permission" "apigw_upload" {
+  statement_id  = "AllowExecutionFromApiGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.useruploadLambdaCmd.function_name
+  principal     = "apigateway.amazonaws.com"
+  
+  source_arn    = "${aws_api_gateway_rest_api.ApiUsers.execution_arn}/*/POST/profile/*/avatar"
+  
+  depends_on = [ aws_lambda_function.useruploadLambdaCmd ]
+}
+
+//Deploy
+
+# El Deployment: Empaqueta todo lo anterior
+resource "aws_api_gateway_deployment" "ApiDeployment" {
+  depends_on = [
+    aws_api_gateway_integration.register_integration,
+    aws_api_gateway_integration.login_integration,
+    aws_api_gateway_integration.update_integration,
+    aws_api_gateway_integration.profile_integration,
+    aws_api_gateway_integration.upload_integration
+  ]
+
+  rest_api_id = aws_api_gateway_rest_api.ApiUsers.id
+
+triggers = {
+    redeployment = sha1(jsonencode([
+      aws_api_gateway_resource.RegisterResource.id,
+      aws_api_gateway_resource.LoginResource.id,
+      aws_api_gateway_resource.ProfileResource.id,
+      aws_api_gateway_resource.UpdateResource.id,
+      aws_api_gateway_resource.AvatarResource.id
+    ]))
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_api_gateway_stage" "prod" {
+  deployment_id = aws_api_gateway_deployment.ApiDeployment.id
+  rest_api_id   = aws_api_gateway_rest_api.ApiUsers.id
+  stage_name    = "prod"
+}
+
+output "apiEndpoint" {
+  description = "Api Gateway Endpoints"
+  value = {
+    # Cambiamos .deployment por .stage.prod
+    base_url = "${aws_api_gateway_stage.prod.invoke_url}"
+    
+    register = {
+        method = "POST"
+        url    = "${aws_api_gateway_stage.prod.invoke_url}/register"
+    }
+
+    login = {
+        method = "POST"
+        url    = "${aws_api_gateway_stage.prod.invoke_url}/login"
+    }
+
+    profile_get = {
+        method = "GET"
+        url    = "${aws_api_gateway_stage.prod.invoke_url}/profile/{user_id}"
+    }
+
+    profile_update = {
+        method = "PUT"
+        url    = "${aws_api_gateway_stage.prod.invoke_url}/profile/{user_id}"
+    }
+
+    profile_avatar = {
+        method = "POST"
+        url    = "${aws_api_gateway_stage.prod.invoke_url}/profile/{user_id}/avatar"
+    }
+  }
 }
