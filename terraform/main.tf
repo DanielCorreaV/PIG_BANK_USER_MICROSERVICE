@@ -78,12 +78,24 @@ resource "aws_api_gateway_method" "UserProfileGet" { // get profile
     authorization = "NONE" 
 }
 
+// secrets
+
+resource "aws_secretsmanager_secret" "password_secret" {
+  name = "banking/password-secret"
+}
+
+resource "aws_secretsmanager_secret_version" "password_secret_val" {
+  secret_id     = aws_secretsmanager_secret.password_secret.id
+  secret_string = "clave-super-secreta-y-bien-chida" 
+}
+
 // DynamoDB
 
 resource "aws_dynamodb_table" "usersTable" {
     name = var.user-table
     billing_mode = "PAY_PER_REQUEST"
     hash_key = "uuid"
+    
 
     attribute {
     name = "uuid"
@@ -115,6 +127,7 @@ resource "aws_dynamodb_table" "usersTable" {
 
 resource "aws_s3_bucket" "user_avatars" {
   bucket = var.USER_AVATARS_BUCKET
+  force_destroy = true 
 }
 
 resource "aws_s3_bucket_public_access_block" "avatars_block" {
@@ -126,6 +139,29 @@ resource "aws_s3_bucket_public_access_block" "avatars_block" {
   restrict_public_buckets = true
 }
 
+resource "aws_iam_role_policy" "lambda_avatar_combined_policy" {
+  name = "lambda_avatar_combined_policy"
+  role = aws_iam_role.i_am_upload_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:PutObject"]
+        Resource = "${aws_s3_bucket.user_avatars.arn}/*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = [
+          "dynamodb:UpdateItem",
+          "dynamodb:GetItem"
+        ]
+        Resource = "arn:aws:dynamodb:${var.region}:${data.aws_caller_identity.current.account_id}:table/${var.user-table}"
+      }
+    ]
+  })
+}
 
 //Lambdas
 
@@ -204,6 +240,22 @@ resource "aws_iam_role_policy" "lambda_login_dynamo" {
   name = "lambdaDynamoDbUser_login"
   role = aws_iam_role.i_am_login_lambda.id
   policy = data.aws_iam_policy_document.lambda_permissions.json
+}
+
+resource "aws_iam_role_policy" "lambda_login_secrets" {
+  name = "lambda_secrets_access_login"
+  role = aws_iam_role.i_am_login_lambda.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "secretsmanager:GetSecretValue"
+        Resource = "${aws_secretsmanager_secret.password_secret.arn}"
+      }
+    ]
+  })
 }
 
 //update

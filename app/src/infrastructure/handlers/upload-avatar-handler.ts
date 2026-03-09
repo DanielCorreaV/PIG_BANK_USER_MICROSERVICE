@@ -10,7 +10,7 @@ const avatarProcess = async (event: any) => {
   const repository = new DynamoUserRepository();
   const useCase = new UploadAvatarUseCase(repository);
 
-  const { uuid } = event.pathParameters;
+  const uuid = event.pathParameters.user_id;
 
   const { image, fileType } = event.body;
 

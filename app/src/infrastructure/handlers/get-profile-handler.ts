@@ -7,7 +7,7 @@ const getProcess = async (event: any) => {
   const repository = new DynamoUserRepository();
   const useCase = new GetProfileUseCase(repository);
 
-  const uuid = event.pathParameters?.uuid;
+  const uuid = event.pathParameters?.user_id;
   const user = await useCase.execute(uuid);
 
   return {
