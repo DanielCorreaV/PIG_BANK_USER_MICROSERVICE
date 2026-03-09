@@ -1,13 +1,17 @@
 data "aws_iam_policy_document" "assume_role" {
-    statement {
-      effect = "Allow"
-      actions = [ "sts:assumeRole" ]
-      principals {
-        type = "Service"
-        identifiers = [ "lambda.amazonaws.com" ]
-      }
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
     }
+
+    actions = ["sts:AssumeRole"]
+  }
 }
+
+
 
 data "aws_iam_policy_document" "lambda_permissions" {
   // Permisos para DynamoDB 
@@ -59,30 +63,30 @@ data "aws_iam_policy_document" "lambda_permissions" {
 
 data "archive_file" "aws_lambda_function_register_file" {
     type = "zip"
-    source_file = "${path.module}/../app/dist/register-user.handler.js"
+    source_file = "${path.module}/../app/dist/register-user-handler.js"
     output_path = "${path.module}/${var.userLambdaRegisterFileNameCmd}"
 }
 
 data "archive_file" "aws_lambda_function_update_file" {
     type = "zip"
-    source_file = "${path.module}/../app/dist/update-user.handler.js"
+    source_file = "${path.module}/../app/dist/update-user-handler.js"
     output_path = "${path.module}/${var.userLambdaUpdateFileNameCmd}"
 }
 
 data "archive_file" "aws_lambda_function_login_file" {
     type = "zip"
-    source_file = "${path.module}/../app/dist/login-user.handler.js"
+    source_file = "${path.module}/../app/dist/login-user-handler.js"
     output_path = "${path.module}/${var.userLambdaLoginFileNameCmd}"
 }
 
 data "archive_file" "aws_lambda_function_upload_file" {
     type = "zip"
-    source_file = "${path.module}/../app/dist/upload-avatar.handler.js"
+    source_file = "${path.module}/../app/dist/upload-avatar-handler.js"
     output_path = "${path.module}/${var.userLambdaUploadFileNameCmd}"
 }
 
 data "archive_file" "aws_lambda_function_profile_file" {
     type = "zip"
-    source_file = "${path.module}/../app/dist/get-profile.handler.js"
+    source_file = "${path.module}/../app/dist/get-profile-handler.js"
     output_path = "${path.module}/${var.userLambdaProfileFileNameQry}"
 }

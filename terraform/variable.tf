@@ -22,12 +22,12 @@ variable "userLambdaRegisterNameCmd" {
 
 variable "userLambdaRegisterHandlerCmd" {
     type = string
-    default = "register-user.handler.handler" 
+    default = "register-user-handler.handler" 
 }
 
 variable "userLambdaRegisterFileNameCmd" {
   type = string
-  default = "register-user.handler.zip"
+  default = "archives/register-user-handler.zip"
 }
 
 
@@ -40,12 +40,12 @@ variable "userLambdaUpdateNameCmd" {
 
 variable "userLambdaUpdateHandlerCmd" {
     type = string
-    default = "update-user.handler.handler" 
+    default = "update-user-handler.handler" 
 }
 
 variable "userLambdaUpdateFileNameCmd" {
   type = string
-  default = "update-user.handler.zip"
+  default = "archives/update-user-handler.zip"
 }
 
 //Login
@@ -57,12 +57,12 @@ variable "userLambdaLoginNameCmd" {
 
 variable "userLambdaLoginHandlerCmd" {
     type = string
-    default = "login-user.handler.handler" 
+    default = "login-user-handler.handler" 
 }
 
 variable "userLambdaLoginFileNameCmd" {
   type = string
-  default = "login-user.handler.zip"
+  default = "archives/login-user-handler.zip"
 }
 
 //Upload
@@ -74,12 +74,12 @@ variable "userLambdaUploadNameCmd" {
 
 variable "userLambdaUploadHandlerCmd" {
     type = string
-    default = "upload-avatar.handler.handler" 
+    default = "upload-avatar-handler.handler" 
 }
 
 variable "userLambdaUploadFileNameCmd" {
   type = string
-  default = "upload-avatar.handler.zip"
+  default = "archives/upload-avatar-handler.zip"
 }
 
 //Profile
@@ -91,11 +91,11 @@ variable "userLambdaProfileNameQry" {
 
 variable "userLambdaProfileHandlerQry" {
     type = string
-    default = "get-profile.handler.handler" 
+    default = "get-profile-handler.handler" 
 }
 
 variable "userLambdaProfileFileNameQry" {
   type = string
-  default = "get-profile.handler.zip"
+  default = "archives/get-profile-handler.zip"
 }
 

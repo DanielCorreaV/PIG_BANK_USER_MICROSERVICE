@@ -83,8 +83,6 @@ resource "aws_api_gateway_method" "UserProfileGet" { // get profile
 resource "aws_dynamodb_table" "usersTable" {
     name = var.user-table
     billing_mode = "PAY_PER_REQUEST"
-    read_capacity = 20
-    write_capacity = 20
     hash_key = "uuid"
 
     attribute {
