@@ -1,32 +1,32 @@
 variable "region" {
-  type = string
+  type    = string
   default = "us-east-1"
 }
 
 variable "user-table" {
-  type =  string
+  type    = string
   default = "users"
 }
 
 variable "USER_AVATARS_BUCKET" {
-  type = string
+  type    = string
   default = "my-banking-avatars"
 }
 
 //register
 
 variable "userLambdaRegisterNameCmd" {
-  type = string
+  type    = string
   default = "user-register-cmd-v1"
 }
 
 variable "userLambdaRegisterHandlerCmd" {
-    type = string
-    default = "register-user-handler.handler" 
+  type    = string
+  default = "register-user-handler.handler"
 }
 
 variable "userLambdaRegisterFileNameCmd" {
-  type = string
+  type    = string
   default = "archives/register-user-handler.zip"
 }
 
@@ -34,68 +34,80 @@ variable "userLambdaRegisterFileNameCmd" {
 //update
 
 variable "userLambdaUpdateNameCmd" {
-  type = string
+  type    = string
   default = "user-update-cmd-v1"
 }
 
 variable "userLambdaUpdateHandlerCmd" {
-    type = string
-    default = "update-user-handler.handler" 
+  type    = string
+  default = "update-user-handler.handler"
 }
 
 variable "userLambdaUpdateFileNameCmd" {
-  type = string
+  type    = string
   default = "archives/update-user-handler.zip"
 }
 
 //Login
 
 variable "userLambdaLoginNameCmd" {
-  type = string
+  type    = string
   default = "user-login-cmd-v1"
 }
 
 variable "userLambdaLoginHandlerCmd" {
-    type = string
-    default = "login-user-handler.handler" 
+  type    = string
+  default = "login-user-handler.handler"
 }
 
 variable "userLambdaLoginFileNameCmd" {
-  type = string
+  type    = string
   default = "archives/login-user-handler.zip"
 }
 
 //Upload
 
 variable "userLambdaUploadNameCmd" {
-  type = string
+  type    = string
   default = "user-upload-cmd-v1"
 }
 
 variable "userLambdaUploadHandlerCmd" {
-    type = string
-    default = "upload-avatar-handler.handler" 
+  type    = string
+  default = "upload-avatar-handler.handler"
 }
 
 variable "userLambdaUploadFileNameCmd" {
-  type = string
+  type    = string
   default = "archives/upload-avatar-handler.zip"
 }
 
 //Profile
 
 variable "userLambdaProfileNameQry" {
-  type = string
+  type    = string
   default = "user-profile-qry-v1"
 }
 
 variable "userLambdaProfileHandlerQry" {
-    type = string
-    default = "get-profile-handler.handler" 
+  type    = string
+  default = "get-profile-handler.handler"
 }
 
 variable "userLambdaProfileFileNameQry" {
-  type = string
+  type    = string
   default = "archives/get-profile-handler.zip"
 }
 
+
+variable "notification_queue_url" {
+  type        = string
+  default     = null
+  description = "URL de la cola SQS compartida para notificaciones"
+}
+
+variable "notification_queue_arn" {
+  type        = string
+  default     = null
+  description = "ARN de la cola SQS compartida para notificaciones"
+}
