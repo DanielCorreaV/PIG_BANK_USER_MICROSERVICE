@@ -133,6 +133,4 @@ Para desplegar la infraestructura, navega a la carpeta `terraform/` y ejecuta:
 
 Asegúrate de tener configuradas tus credenciales de AWS y las variables necesarias en `variable.tf`.
 
----
-
-¿Te gustaría que añada una sección específica sobre cómo ejecutar los tests o cómo configurar las variables de entorno locales?
+---¿
