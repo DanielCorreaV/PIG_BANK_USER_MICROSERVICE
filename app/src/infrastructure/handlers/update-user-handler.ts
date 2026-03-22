@@ -1,21 +1,40 @@
 import middy from "@middy/core";
 import httpErrorHandler from "@middy/http-error-handler";
 import httpJsonBodyParser from "@middy/http-json-body-parser";
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { jsonSchemaMiddleware } from "../middleware/json.schema.middleware";
-import { UpdateUserSchema } from "../schema/update-user.schema";
-import { DynamoUserRepository } from "../database/dynamo-user.repository";
-import { UpdateProfileUseCase } from "../../application/user/update-user.useCase";
+import { APIGatewayProxyResult } from "aws-lambda";
 import createHttpError from "http-errors";
+import { UpdateProfileUseCase } from "../../application/user/update-user.useCase";
+import { DynamoUserRepository } from "../database/dynamo-user.repository";
+import { jsonSchemaMiddleware } from "../middleware/json.schema.middleware";
+import { SqsNotificationService } from "../notifications/sqs-notification.service";
+import { UpdateUserSchema } from "../schema/update-user.schema";
 
 const updateProcess = async (event: any): Promise<APIGatewayProxyResult> => {
   const repository = new DynamoUserRepository();
   const useCase = new UpdateProfileUseCase(repository);
+  const notificationService = new SqsNotificationService();
 
   const uuid = event.pathParameters?.user_id;
   if (!uuid) throw new createHttpError.BadRequest("User ID is required");
 
+  const existingUser = await repository.findById(uuid);
+  if (!existingUser) throw new createHttpError.NotFound("User not found");
+
   await useCase.execute(uuid, event.body);
+
+  try {
+    await notificationService.send({
+      type: "USER.UPDATE",
+      toEmail: existingUser.email,
+      source: "user-service",
+      occurredAt: new Date().toISOString(),
+      data: {
+        date: new Date().toISOString(),
+      },
+    });
+  } catch (error) {
+    console.error("Failed to publish USER.UPDATE notification", error);
+  }
 
   return {
     statusCode: 200,
