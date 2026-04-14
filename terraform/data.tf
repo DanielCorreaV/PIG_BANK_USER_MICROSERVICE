@@ -22,7 +22,7 @@ data "aws_iam_policy_document" "lambda_permissions" {
       "dynamodb:GetItem",
       "dynamodb:PutItem",
       "dynamodb:UpdateItem",
-      "dynamodb:Query", 
+      "dynamodb:Query",
       "dynamodb:Scan"
     ]
     resources = [
@@ -36,7 +36,7 @@ data "aws_iam_policy_document" "lambda_permissions" {
     effect = "Allow"
     actions = [
       "s3:PutObject",
-      "s3:PutObjectAcl" 
+      "s3:PutObjectAcl"
     ]
     resources = ["arn:aws:s3:::my-banking-avatars/*"]
   }
@@ -47,7 +47,7 @@ data "aws_iam_policy_document" "lambda_permissions" {
     actions = [
       "secretsmanager:GetSecretValue"
     ]
-    resources = ["*"] 
+    resources = ["*"]
   }
 
   // Permisos de Logs
@@ -63,31 +63,31 @@ data "aws_iam_policy_document" "lambda_permissions" {
 }
 
 data "archive_file" "aws_lambda_function_register_file" {
-    type = "zip"
-    source_file = "${path.module}/../app/dist/register-user-handler.js"
-    output_path = "${path.module}/${var.userLambdaRegisterFileNameCmd}"
+  type        = "zip"
+  source_file = "${path.module}/../app/dist/register-user-handler.js"
+  output_path = "${path.module}/${var.userLambdaRegisterFileNameCmd}"
 }
 
 data "archive_file" "aws_lambda_function_update_file" {
-    type = "zip"
-    source_file = "${path.module}/../app/dist/update-user-handler.js"
-    output_path = "${path.module}/${var.userLambdaUpdateFileNameCmd}"
+  type        = "zip"
+  source_file = "${path.module}/../app/dist/update-user-handler.js"
+  output_path = "${path.module}/${var.userLambdaUpdateFileNameCmd}"
 }
 
 data "archive_file" "aws_lambda_function_login_file" {
-    type = "zip"
-    source_file = "${path.module}/../app/dist/login-user-handler.js"
-    output_path = "${path.module}/${var.userLambdaLoginFileNameCmd}"
+  type        = "zip"
+  source_file = "${path.module}/../app/dist/login-user-handler.js"
+  output_path = "${path.module}/${var.userLambdaLoginFileNameCmd}"
 }
 
 data "archive_file" "aws_lambda_function_upload_file" {
-    type = "zip"
-    source_file = "${path.module}/../app/dist/upload-avatar-handler.js"
-    output_path = "${path.module}/${var.userLambdaUploadFileNameCmd}"
+  type        = "zip"
+  source_file = "${path.module}/../app/dist/upload-avatar-handler.js"
+  output_path = "${path.module}/${var.userLambdaUploadFileNameCmd}"
 }
 
 data "archive_file" "aws_lambda_function_profile_file" {
-    type = "zip"
-    source_file = "${path.module}/../app/dist/get-profile-handler.js"
-    output_path = "${path.module}/${var.userLambdaProfileFileNameQry}"
+  type        = "zip"
+  source_file = "${path.module}/../app/dist/get-profile-handler.js"
+  output_path = "${path.module}/${var.userLambdaProfileFileNameQry}"
 }
