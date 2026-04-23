@@ -1,4 +1,3 @@
-import httpErrorHandler from "@middy/http-error-handler";
 import middy from "@middy/core";
 import { APIGatewayProxyResult } from "aws-lambda";
 import httpJsonBodyParser from "@middy/http-json-body-parser";
@@ -7,6 +6,8 @@ import { DynamoUserRepository } from "../database/dynamo-user.repository";
 import { jsonSchemaMiddleware } from "../middleware/json.schema.middleware";
 import { SqsNotificationService } from "../notifications/sqs-notification.service";
 import { loginUserSchema } from "../schema/login-user.schema";
+import { corsHeaders } from "../http/cors";
+import { httpErrorWithCors } from "../http/http-error-with-cors";
 
 const loginProcess = async (event: any): Promise<APIGatewayProxyResult> => {
   const repository = new DynamoUserRepository();
@@ -35,11 +36,12 @@ const loginProcess = async (event: any): Promise<APIGatewayProxyResult> => {
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ token }),
+    headers: corsHeaders,
+    body: JSON.stringify({ token, user }),
   };
 };
 
 export const handler = middy(loginProcess)
   .use(httpJsonBodyParser())
   .use(jsonSchemaMiddleware(loginUserSchema))
-  .use(httpErrorHandler());
+  .use(httpErrorWithCors());

@@ -1,10 +1,11 @@
 import middy from "@middy/core";
-import httpErrorHandler from "@middy/http-error-handler";
 import httpJsonBodyParser from "@middy/http-json-body-parser";
 import { DynamoUserRepository } from "../database/dynamo-user.repository";
 import { UploadAvatarUseCase } from "../../application/user/upload-avatar.useCase";
 import { jsonSchemaMiddleware } from "../middleware/json.schema.middleware";
 import { uploadAvatarSchema } from "../schema/upload-avatar.schema";
+import { corsHeaders } from "../http/cors";
+import { httpErrorWithCors } from "../http/http-error-with-cors";
 
 const avatarProcess = async (event: any) => {
   const repository = new DynamoUserRepository();
@@ -18,6 +19,7 @@ const avatarProcess = async (event: any) => {
 
   return {
     statusCode: 200,
+    headers: corsHeaders,
     body: JSON.stringify({
       message: "Imagen subida con éxito",
       url: imageUrl,
@@ -28,4 +30,4 @@ const avatarProcess = async (event: any) => {
 export const handler = middy(avatarProcess)
   .use(httpJsonBodyParser())
   .use(jsonSchemaMiddleware(uploadAvatarSchema))
-  .use(httpErrorHandler());
+  .use(httpErrorWithCors());

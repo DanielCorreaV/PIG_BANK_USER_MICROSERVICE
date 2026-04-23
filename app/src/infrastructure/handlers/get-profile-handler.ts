@@ -1,7 +1,8 @@
 import middy from "@middy/core";
-import httpErrorHandler from "@middy/http-error-handler";
 import { DynamoUserRepository } from "../database/dynamo-user.repository";
 import { GetProfileUseCase } from "../../application/user/get-user-profile.useCase";
+import { corsHeaders } from "../http/cors";
+import { httpErrorWithCors } from "../http/http-error-with-cors";
 
 const getProcess = async (event: any) => {
   const repository = new DynamoUserRepository();
@@ -12,8 +13,9 @@ const getProcess = async (event: any) => {
 
   return {
     statusCode: 200,
+    headers: corsHeaders,
     body: JSON.stringify(user),
   };
 };
 
-export const handler = middy(getProcess).use(httpErrorHandler());
+export const handler = middy(getProcess).use(httpErrorWithCors());
