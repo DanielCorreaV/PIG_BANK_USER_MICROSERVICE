@@ -1,5 +1,4 @@
 import middy from "@middy/core";
-import httpErrorHandler from "@middy/http-error-handler";
 import httpJsonBodyParser from "@middy/http-json-body-parser";
 import { APIGatewayProxyResult } from "aws-lambda";
 import createHttpError from "http-errors";
@@ -8,6 +7,8 @@ import { DynamoUserRepository } from "../database/dynamo-user.repository";
 import { jsonSchemaMiddleware } from "../middleware/json.schema.middleware";
 import { SqsNotificationService } from "../notifications/sqs-notification.service";
 import { UpdateUserSchema } from "../schema/update-user.schema";
+import { corsHeaders } from "../http/cors";
+import { httpErrorWithCors } from "../http/http-error-with-cors";
 
 const updateProcess = async (event: any): Promise<APIGatewayProxyResult> => {
   const repository = new DynamoUserRepository();
@@ -38,6 +39,7 @@ const updateProcess = async (event: any): Promise<APIGatewayProxyResult> => {
 
   return {
     statusCode: 200,
+    headers: corsHeaders,
     body: JSON.stringify({ message: "User profile updated successfully" }),
   };
 };
@@ -45,4 +47,4 @@ const updateProcess = async (event: any): Promise<APIGatewayProxyResult> => {
 export const handler = middy(updateProcess)
   .use(httpJsonBodyParser())
   .use(jsonSchemaMiddleware(UpdateUserSchema))
-  .use(httpErrorHandler());
+  .use(httpErrorWithCors());

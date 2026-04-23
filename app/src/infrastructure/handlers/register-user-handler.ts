@@ -1,5 +1,4 @@
 import middy from "@middy/core";
-import httpErrorHandler from "@middy/http-error-handler";
 import { APIGatewayProxyResult } from "aws-lambda";
 import httpJsonBodyParser from "@middy/http-json-body-parser";
 import { RegisterUserUseCase } from "../../application/user/register-user.useCase";
@@ -7,6 +6,8 @@ import { DynamoUserRepository } from "../database/dynamo-user.repository";
 import { jsonSchemaMiddleware } from "../middleware/json.schema.middleware";
 import { SqsNotificationService } from "../notifications/sqs-notification.service";
 import { registerUserSchema } from "../schema/register-user.schema";
+import { corsHeaders } from "../http/cors";
+import { httpErrorWithCors } from "../http/http-error-with-cors";
 
 const registerProcess = async (event: any): Promise<APIGatewayProxyResult> => {
   const repository = new DynamoUserRepository();
@@ -31,9 +32,11 @@ const registerProcess = async (event: any): Promise<APIGatewayProxyResult> => {
 
   return {
     statusCode: 201,
+    headers: corsHeaders,
     body: JSON.stringify({
       message: "User registered successfully",
       uuid: user.uuid,
+      user,
     }),
   };
 };
@@ -41,4 +44,4 @@ const registerProcess = async (event: any): Promise<APIGatewayProxyResult> => {
 export const handler = middy(registerProcess)
   .use(httpJsonBodyParser())
   .use(jsonSchemaMiddleware(registerUserSchema))
-  .use(httpErrorHandler());
+  .use(httpErrorWithCors());
