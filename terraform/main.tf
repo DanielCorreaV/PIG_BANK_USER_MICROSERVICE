@@ -41,6 +41,15 @@ resource "aws_api_gateway_resource" "AvatarResource" {
   path_part   = "avatar"
 }
 
+locals {
+  cors_resources = {
+    register       = aws_api_gateway_resource.RegisterResource.id
+    login          = aws_api_gateway_resource.LoginResource.id
+    profile_user   = aws_api_gateway_resource.UpdateResource.id
+    profile_avatar = aws_api_gateway_resource.AvatarResource.id
+  }
+}
+
 // Los endpoints
 
 resource "aws_api_gateway_method" "UserRegisterPost" { //register
@@ -76,6 +85,60 @@ resource "aws_api_gateway_method" "UserProfileGet" { // get profile
   rest_api_id   = aws_api_gateway_rest_api.ApiUsers.id
   http_method   = "GET"
   authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "CorsOptions" {
+  for_each = local.cors_resources
+
+  rest_api_id   = aws_api_gateway_rest_api.ApiUsers.id
+  resource_id   = each.value
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "CorsOptions" {
+  for_each = local.cors_resources
+
+  rest_api_id = aws_api_gateway_rest_api.ApiUsers.id
+  resource_id = each.value
+  http_method = aws_api_gateway_method.CorsOptions[each.key].http_method
+  type        = "MOCK"
+
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "CorsOptions" {
+  for_each = local.cors_resources
+
+  rest_api_id = aws_api_gateway_rest_api.ApiUsers.id
+  resource_id = each.value
+  http_method = aws_api_gateway_method.CorsOptions[each.key].http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "CorsOptions" {
+  for_each = local.cors_resources
+
+  rest_api_id = aws_api_gateway_rest_api.ApiUsers.id
+  resource_id = each.value
+  http_method = aws_api_gateway_method.CorsOptions[each.key].http_method
+  status_code = aws_api_gateway_method_response.CorsOptions[each.key].status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,Authorization'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,POST,PUT,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+
+  depends_on = [aws_api_gateway_integration.CorsOptions]
 }
 
 // secrets
@@ -555,7 +618,8 @@ resource "aws_api_gateway_deployment" "ApiDeployment" {
     aws_api_gateway_integration.login_integration,
     aws_api_gateway_integration.update_integration,
     aws_api_gateway_integration.profile_integration,
-    aws_api_gateway_integration.upload_integration
+    aws_api_gateway_integration.upload_integration,
+    aws_api_gateway_integration_response.CorsOptions
   ]
 
   rest_api_id = aws_api_gateway_rest_api.ApiUsers.id
@@ -566,7 +630,8 @@ resource "aws_api_gateway_deployment" "ApiDeployment" {
       aws_api_gateway_resource.LoginResource.id,
       aws_api_gateway_resource.ProfileResource.id,
       aws_api_gateway_resource.UpdateResource.id,
-      aws_api_gateway_resource.AvatarResource.id
+      aws_api_gateway_resource.AvatarResource.id,
+      aws_api_gateway_method.CorsOptions
     ]))
   }
 
